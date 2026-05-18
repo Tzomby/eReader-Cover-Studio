@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kindle Cover Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #1a191d; /* Deep premium grey/black from image background */
+            color: #d1d1d6;
+        }
+        
+        /* Modern dashboard card & panel styling based on uploaded screenshot */
+        .sidebar-panel {
+            background-color: #131215; /* Slate dark black from sidebar */
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .dashboard-card {
+            background-color: #1e1d24; /* Purple-toned dark grey card background */
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+        }
+        
+        .accent-button {
+            background-color: #6d28d9; /* Deep violet accent */
+            color: #ffffff;
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .accent-button:hover:not(:disabled) {
+            background-color: #7c3aed;
+            box-shadow: 0 0 12px rgba(124, 58, 237, 0.4);
+        }
+
+        .accent-button:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+
+        .border-button {
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background-color: rgba(255, 255, 255, 0.03);
+            color: #e2e8f0;
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .border-button:hover:not(:disabled) {
+            background-color: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .border-button:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+
+        /* Prevent the reset button from losing its center translation when clicked */
+        #resetBtn:active:not(:disabled) {
+            transform: translate(-50%, 0) scale(0.98);
+        }
+
+        /* Custom premium slider mimicking the violet accent points in the dashboard screenshot */
+        .cyan-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 24px;
+            background: transparent;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .cyan-slider::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            background: #2e2d35;
+            border-radius: 2px;
+        }
+
+        .cyan-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #a78bfa; /* Light purple thumb */
+            cursor: pointer;
+            margin-top: -5px;
+            box-shadow: 0 0 8px rgba(167, 139, 250, 0.5);
+            transition: transform 0.1s;
+        }
+
+        .cyan-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .cyan-slider::-moz-range-track {
+            width: 100%;
+            height: 4px;
+            background: #2e2d35;
+            border-radius: 2px;
+        }
+
+        .cyan-slider::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #a78bfa;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(167, 139, 250, 0.5);
+            transition: transform 0.1s;
+        }
+
+        .cyan-slider::-moz-range-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        /* Remove spin buttons/arrows on custom size numeric textboxes */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        #canvasWrapper {
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            background: #000;
+            overflow: hidden;
+            cursor: grab;
+            transition: width 0.15s ease-out, height 0.15s ease-out;
+        }
+
+        #canvasWrapper:active {
+            cursor: grabbing;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* Dropdown styling matches image elements */
+        select.cyan-select {
+            background-color: #1e1d24;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+            padding: 0.6rem;
+            border-radius: 8px;
+            outline: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: border-color 0.2s;
+        }
+        
+        select.cyan-select:hover {
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        select.cyan-select option {
+            background-color: #1e1d24;
+            color: #e2e8f0;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 lg:p-6 font-sans overflow-y-auto">
+
+    <!-- Unified Dashboard Workspace with heights expanded to fill the viewport vertically -->
+    <div class="flex flex-col md:flex-row w-full max-w-5xl gap-6 items-center justify-center h-[90vh]">
+        
+        <!-- Controls Panel (Left side styled like the dark dashboard sidebar) -->
+        <div class="sidebar-panel flex flex-col w-full md:w-80 p-5 rounded-2xl gap-5 shrink-0 h-full max-h-[90vh] overflow-y-auto" style="scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent;">
+            
+            <div class="flex items-center gap-2 mb-1">
+                <div class="h-6 w-6 rounded-md bg-purple-600 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"></path></svg>
+                </div>
+                <span class="text-sm font-semibold tracking-wider text-white uppercase">Cover Studio</span>
+            </div>
+
+            <input type="file" id="fileInput" class="hidden" accept="image/*">
+            
+            <div class="flex gap-3">
+                <button id="uploadBtn" class="accent-button flex-1 py-3 rounded-lg font-bold uppercase tracking-wider text-[11px] flex flex-col items-center justify-center gap-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    Upload
+                </button>
+
+                <button id="downloadBtn" class="border-button flex-1 py-3 rounded-lg font-bold uppercase tracking-wider text-[11px] flex flex-col items-center justify-center gap-1.5 disabled:opacity-30 disabled:cursor-not-allowed">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Save
+                </button>
+            </div>
+
+            <!-- Single Action Row containing Toggle Invert, Mirror H, Mirror V, and BG Color Picker -->
+            <div class="flex gap-2 items-center">
+                <button id="invertBtn" class="border-button flex-1 h-10 flex items-center justify-center rounded-lg font-bold text-xs" title="Toggle Invert">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10H12V2z"/><path d="M12 2a10 10 0 0 1 0 20v-10h10a10 10 0 0 1-10-10z"/></svg>
+                </button>
+                <button id="flipHBtn" class="border-button flex-1 h-10 flex items-center justify-center rounded-lg font-bold text-xs" title="Mirror Horizontal">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h3"/><path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"/><path d="M12 20v2"/><path d="M12 14v2"/><path d="M12 8v2"/><path d="M12 2v2"/></svg>
+                </button>
+                <button id="flipVBtn" class="border-button flex-1 h-10 flex items-center justify-center rounded-lg font-bold text-xs" title="Mirror Vertical">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V5c0-1.1.9-2 2-2h14a2 2 0 0 1 2 2v3"/><path d="M3 16v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3"/><path d="M20 12h2"/><path d="M14 12h2"/><path d="M8 12h2"/><path d="M2 12h2"/></svg>
+                </button>
+                <div class="flex-1 h-10 flex items-center justify-center" title="Background Picker (Click then select a pixel on the canvas)">
+                    <button id="bgColorBox" class="w-full h-full cursor-pointer rounded-lg border border-purple-400 bg-[#ffffff] transition-all hover:opacity-80 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#131215" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m2 22 1-1c.7-.7.7-1.9 0-2.6L1 18c-.7-.7-.7-1.9 0-2.6l10-10c.8-.8 2-1 3-.5l1.5 1.5c.5 1 .3 2.2-.5 3L5 19.4c-.7.7-1.9.7-2.6 0z"/><path d="M18.5 5.5 20 4c.8-.8 2-.8 2.8 0l1.4 1.4c.8.8.8 2 0 2.8l-1.5 1.5"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Hidden Background Value Display holding color reference safely inside JS without visible text labels -->
+            <span id="bgColorVal" class="hidden">#FFFFFF</span>
+
+            <div class="slider-container flex flex-col gap-1">
+                <div class="flex justify-between items-center text-gray-400 text-[11px] font-semibold uppercase tracking-wider">
+                    <label for="brightnessSlider">Brightness</label>
+                    <div class="flex items-center gap-1.5">
+                        <span id="brightnessVal" class="text-purple-300">100%</span>
+                        <button class="reset-slider-btn text-gray-500 hover:text-white transition-colors" data-target="brightness" title="Reset Brightness">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <input type="range" id="brightnessSlider" class="cyan-slider" min="0" max="200" value="100">
+            </div>
+
+            <div class="slider-container flex flex-col gap-1">
+                <div class="flex justify-between items-center text-gray-400 text-[11px] font-semibold uppercase tracking-wider">
+                    <label for="contrastSlider">Contrast</label>
+                    <div class="flex items-center gap-1.5">
+                        <span id="contrastVal" class="text-purple-300">100%</span>
+                        <button class="reset-slider-btn text-gray-500 hover:text-white transition-colors" data-target="contrast" title="Reset Contrast">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <input type="range" id="contrastSlider" class="cyan-slider" min="0" max="200" value="100">
+            </div>
+
+            <div class="slider-container flex flex-col gap-1">
+                <div class="flex justify-between items-center text-gray-400 text-[11px] font-semibold uppercase tracking-wider">
+                    <label for="sharpnessSlider">Sharpness</label>
+                    <div class="flex items-center gap-1.5">
+                        <span id="sharpnessVal" class="text-purple-300">0</span>
+                        <button class="reset-slider-btn text-gray-500 hover:text-white transition-colors" data-target="sharpness" title="Reset Sharpness">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <input type="range" id="sharpnessSlider" class="cyan-slider" min="0" max="2" step="0.1" value="0">
+            </div>
+
+            <div class="slider-container flex flex-col gap-1">
+                <div class="flex justify-between items-center text-gray-400 text-[11px] font-semibold uppercase tracking-wider">
+                    <label for="zoomSlider">Zoom</label>
+                    <div class="flex items-center gap-1.5">
+                        <span id="zoomVal" class="text-purple-300">1x</span>
+                        <button class="reset-slider-btn text-gray-500 hover:text-white transition-colors" data-target="zoom" title="Reset Zoom">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <input type="range" id="zoomSlider" class="cyan-slider" min="0.1" max="5" step="0.05" value="1">
+            </div>
+
+            <div class="slider-container flex flex-col gap-1">
+                <div class="flex justify-between items-center text-gray-400 text-[11px] font-semibold uppercase tracking-wider">
+                    <label for="posXSlider">Pos X</label>
+                    <div class="flex items-center gap-1.5">
+                        <span id="posXVal" class="text-purple-300">0</span>
+                        <button class="reset-slider-btn text-gray-500 hover:text-white transition-colors" data-target="posX" title="Reset Pos X">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <input type="range" id="posXSlider" class="cyan-slider" min="-1500" max="1500" value="0">
+            </div>
+
+            <div class="slider-container flex flex-col gap-1">
+                <div class="flex justify-between items-center text-gray-400 text-[11px] font-semibold uppercase tracking-wider">
+                    <label for="posYSlider">Pos Y</label>
+                    <div class="flex items-center gap-1.5">
+                        <span id="posYVal" class="text-purple-300">0</span>
+                        <button class="reset-slider-btn text-gray-500 hover:text-white transition-colors" data-target="posY" title="Reset Pos Y">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <input type="range" id="posYSlider" class="cyan-slider" min="-1500" max="1500" value="0">
+            </div>
+        </div>
+
+        <!-- Canvas Area (Right side dashboard workspace container) -->
+        <div class="flex-1 flex flex-col items-center justify-center gap-4 h-full">
+            
+            <!-- Model Selector layout above the canvas -->
+            <div id="modelSelectorContainer" class="w-full flex flex-col items-center gap-1 transition-all duration-150">
+                <select id="modelSelect" class="cyan-select w-full text-center text-sm shadow-md"></select>
+                <span id="modelResolutionText" class="text-[11px] text-purple-400/80 font-medium tracking-wider"></span>
+            </div>
+
+            <!-- Custom Size Panel (appears seamlessly directly below the device selector above the canvas) -->
+            <div id="customSizePanel" class="hidden flex gap-4 w-full">
+                <div class="flex-1 flex flex-col gap-1">
+                    <label for="customWidth" class="text-gray-400 text-[10px] font-semibold uppercase tracking-wider">Width</label>
+                    <input type="number" id="customWidth" class="w-full bg-[#1e1d24] border border-gray-700 text-purple-300 rounded-lg p-2 text-xs outline-none font-bold text-center" value="1000">
+                </div>
+                <div class="flex-1 flex flex-col gap-1">
+                    <label for="customHeight" class="text-gray-400 text-[10px] font-semibold uppercase tracking-wider">Height</label>
+                    <input type="number" id="customHeight" class="w-full bg-[#1e1d24] border border-gray-700 text-purple-300 rounded-lg p-2 text-xs outline-none font-bold text-center" value="1000">
+                </div>
+            </div>
+
+            <div id="canvasWrapper" class="group">
+                <canvas id="coverCanvas" width="600" height="800"></canvas>
+                <button id="resetBtn" class="border-button absolute bottom-6 left-1/2 transform -translate-x-1/2 px-5 py-2 bg-[#1e1d24]/95 backdrop-blur-md rounded-lg font-bold uppercase tracking-wider text-[11px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-2xl">
+                    Reset View & Filters
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // List of extracted devices and resolutions
+        const devices = [
+            { name: "Kindle (11th Gen)", width: 1072, height: 1448 },
+            { name: "Kindle PW (12th Gen)", width: 1264, height: 1680 },
+            { name: "Kindle PW (11th Gen)", width: 1236, height: 1648 },
+            { name: "Kindle PW (10th Gen & earlier)", width: 1072, height: 1448 },
+            { name: "Kindle Oasis (3rd Gen)", width: 1264, height: 1680 },
+            { name: "Kindle Scribe", width: 1860, height: 2480 },
+            { name: "Kobo Nia", width: 758, height: 1024 },
+            { name: "Kobo Clara BW", width: 1072, height: 1448 },
+            { name: "Kobo Clara 2E / HD", width: 1072, height: 1448 },
+            { name: "Kobo Libra 2 / H2O", width: 1264, height: 1680 },
+            { name: "Kobo Sage", width: 1440, height: 1920 },
+            { name: "Kobo Elipsa 2E", width: 1404, height: 1872 },
+            { name: "Remarkable 2", width: 1404, height: 1872 },
+            { name: "Boox Palma", width: 824, height: 1648 },
+            { name: "Boox Page", width: 1264, height: 1680 },
+            { name: "Boox Note Air Series", width: 1404, height: 1872 },
+            { name: "Boox Tab Ultra Series", width: 1404, height: 1872 },
+            { name: "Nook GlowLight 4 / 4e", width: 1072, height: 1448 },
+            { name: "PocketBook Era", width: 1264, height: 1680 },
+            { name: "PocketBook InkPad 4 / Color 3", width: 1404, height: 1872 },
+            { name: "Custom Device", width: 1000, height: 1000 }
+        ];
+
+        const canvas = document.getElementById('coverCanvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        
+        // UI Elements
+        const fileInput = document.getElementById('fileInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const invertBtn = document.getElementById('invertBtn');
+        const brightnessSlider = document.getElementById('brightnessSlider');
+        const contrastSlider = document.getElementById('contrastSlider');
+        const sharpnessSlider = document.getElementById('sharpnessSlider');
+        const zoomSlider = document.getElementById('zoomSlider');
+        const posXSlider = document.getElementById('posXSlider');
+        const posYSlider = document.getElementById('posYSlider');
+        const bgColorBox = document.getElementById('bgColorBox');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const canvasWrapper = document.getElementById('canvasWrapper');
+        
+        const modelSelect = document.getElementById('modelSelect');
+        const modelResolutionText = document.getElementById('modelResolutionText');
+        const customSizePanel = document.getElementById('customSizePanel');
+        const customWidthInput = document.getElementById('customWidth');
+        const customHeightInput = document.getElementById('customHeight');
+
+        // Text Displays
+        const brightnessVal = document.getElementById('brightnessVal');
+        const contrastVal = document.getElementById('contrastVal');
+        const sharpnessVal = document.getElementById('sharpnessVal');
+        const zoomVal = document.getElementById('zoomVal');
+        const posXVal = document.getElementById('posXVal');
+        const posYVal = document.getElementById('posYVal');
+
+        // Constants
+        const CANVAS_WIDTH = 600;
+        const CANVAS_HEIGHT = 800;
+        let CENTER_X = CANVAS_WIDTH / 2;
+        let CENTER_Y = CANVAS_HEIGHT / 2;
+
+        // Dynamic State Variables
+        let img = null;
+        let invert = false;
+        let flipH = false;
+        let flipV = false;
+        let bgColor = '#ffffff';
+        let brightness = 100;
+        let contrast = 100;
+        let sharpness = 0;
+        let scale = 1;
+        
+        // Position references the center of the image. Starts centered.
+        let posX = 0;
+        let posY = 0;
+        
+        // Defaults to fallback to (calculated dynamically when loading images/resolutions)
+        let defaultScale = 1;
+        let defaultPosX = 0;
+        let defaultPosY = 0;
+
+        // Color Pick & Drag State
+        let isPickingColor = false;
+        let isDragging = false;
+        let lastMouseX = 0;
+        let lastMouseY = 0;
+
+        // Populate Model Select Options
+        devices.forEach((device, index) => {
+            const opt = document.createElement('option');
+            opt.value = index;
+            opt.innerText = device.name;
+            modelSelect.appendChild(opt);
+        });
+
+        // --- Core Rendering Logic ---
+        
+        function draw() {
+            const canvasW = canvas.width;
+            const canvasH = canvas.height;
+
+            // Fill background based on user selection
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, 0, canvasW, canvasH);
+
+            if (!img) return;
+
+            // Apply standard CSS filters
+            ctx.filter = `grayscale(100%) brightness(${brightness}%) contrast(${contrast}%) ${invert ? 'invert(100%)' : ''}`;
+            
+            ctx.save();
+            const drawW = img.width * scale;
+            const drawH = img.height * scale;
+
+            // Translate to center point
+            ctx.translate(posX, posY);
+            // Apply flipping if needed
+            ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
+            // Draw image relative to its center
+            ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
+            
+            ctx.restore();
+            
+            // Reset filter before manual pixel manipulation
+            ctx.filter = 'none';
+
+            // Apply manual sharpening matrix if required
+            if (sharpness > 0) applySharpening();
+        }
+
+        // Custom fast convolution matrix for sharpening
+        function applySharpening() {
+            const canvasW = canvas.width;
+            const canvasH = canvas.height;
+            const imageData = ctx.getImageData(0, 0, canvasW, canvasH);
+            const data = imageData.data;
+            const copy = new Uint8ClampedArray(data);
+            
+            const s = parseFloat(sharpness); 
+            const centerWeight = 1 + 4 * s;
+
+            for (let y = 1; y < canvasH - 1; y++) {
+                for (let x = 1; x < canvasW - 1; x++) {
+                    const i = (y * canvasW + x) * 4;
+                    
+                    const t = ((y - 1) * canvasW + x) * 4; // top
+                    const b = ((y + 1) * canvasW + x) * 4; // bottom
+                    const l = (y * canvasW + (x - 1)) * 4; // left
+                    const r = (y * canvasW + (x + 1)) * 4; // right
+
+                    for (let c = 0; c < 3; c++) {
+                        data[i + c] = (centerWeight * copy[i + c]) - s * (copy[t + c] + copy[b + c] + copy[l + c] + copy[r + c]);
+                    }
+                }
+            }
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        function handleModelChange() {
+            const index = modelSelect.value;
+            const selected = devices[index];
+            let width = selected.width;
+            let height = selected.height;
+
+            if (selected.name === "Custom Device") {
+                customSizePanel.classList.remove('hidden');
+                modelResolutionText.classList.add('hidden'); // Hide the resolution text under dropdown
+                width = parseInt(customWidthInput.value) || 1000;
+                height = parseInt(customHeightInput.value) || 1000;
+            } else {
+                customSizePanel.classList.add('hidden');
+                modelResolutionText.classList.remove('hidden'); // Ensure resolution text is visible for presets
+                modelResolutionText.innerText = `${width} x ${height} px`;
+            }
+
+            // Update canvas element resolution
+            canvas.width = width;
+            canvas.height = height;
+
+            // Recalculate dynamic centers
+            CENTER_X = width / 2;
+            CENTER_Y = height / 2;
+
+            // Dynamically calculate display dimensions to preserve aspect ratio, scaling taller to fill screen
+            const maxDisplayHeight = Math.min(800, window.innerHeight * 0.82);
+            const displayWidth = maxDisplayHeight * (width / height);
+
+            canvasWrapper.style.height = `${maxDisplayHeight}px`;
+            canvasWrapper.style.width = `${displayWidth}px`;
+
+            // Align selector and custom size panels precisely to the scaled width
+            document.getElementById('modelSelectorContainer').style.maxWidth = `${displayWidth}px`;
+            customSizePanel.style.maxWidth = `${displayWidth}px`;
+
+            // Re-center internal positions
+            defaultPosX = CENTER_X;
+            defaultPosY = CENTER_Y;
+
+            if (img) {
+                // Keep image centered but adjust scale to fit the new aspect resolution
+                const scaleX = width / img.width;
+                const scaleY = height / img.height;
+                scale = Math.max(scaleX, scaleY);
+                defaultScale = scale;
+                posX = defaultPosX;
+                posY = defaultPosY;
+            } else {
+                scale = 1;
+                posX = defaultPosX;
+                posY = defaultPosY;
+            }
+
+            updateUI();
+            draw();
+        }
+
+        function resetImageState() {
+            if (!img) return;
+            
+            const scaleX = canvas.width / img.width;
+            const scaleY = canvas.height / img.height;
+            scale = Math.max(scaleX, scaleY);
+            defaultScale = scale;
+            
+            posX = canvas.width / 2;
+            posY = canvas.height / 2;
+            defaultPosX = posX;
+            defaultPosY = posY;
+
+            // Reset filters and transforms
+            invert = false;
+            flipH = false;
+            flipV = false;
+            bgColor = '#ffffff';
+            brightness = 100;
+            contrast = 100;
+            sharpness = 0;
+
+            updateUI();
+            draw();
+        }
+
+        function updateUI() {
+            brightnessSlider.value = brightness;
+            brightnessVal.innerText = `${brightness}%`;
+
+            contrastSlider.value = contrast;
+            contrastVal.innerText = `${contrast}%`;
+            
+            sharpnessSlider.value = sharpness;
+            sharpnessVal.innerText = sharpness;
+            
+            zoomSlider.value = scale;
+            zoomVal.innerText = `${scale.toFixed(2)}x`;
+
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+
+            // Display offsets relative to the center
+            const displayOffsetX = Math.round(posX - centerX);
+            const displayOffsetY = Math.round(posY - centerY);
+
+            posXSlider.value = displayOffsetX;
+            posXVal.innerText = displayOffsetX;
+
+            posYSlider.value = displayOffsetY;
+            posYVal.innerText = displayOffsetY;
+
+            bgColorBox.style.backgroundColor = bgColor;
+            document.getElementById('bgColorVal').innerText = bgColor.toUpperCase();
+        }
+
+        // --- Event Listeners ---
+
+        // Wheel to scroll sliders
+        document.querySelectorAll('.slider-container').forEach(container => {
+            container.addEventListener('wheel', (e) => {
+                if (!img) return;
+                e.preventDefault(); // Prevent page scroll
+                const slider = container.querySelector('.cyan-slider');
+                const step = parseFloat(slider.step) || (parseFloat(slider.max) - parseFloat(slider.min)) / 100;
+                const direction = e.deltaY < 0 ? 1 : -1;
+                let newVal = parseFloat(slider.value) + (direction * step * 2);
+                newVal = Math.min(Math.max(newVal, parseFloat(slider.min)), parseFloat(slider.max));
+                slider.value = newVal;
+                slider.dispatchEvent(new Event('input')); 
+            });
+        });
+
+        // Reset individual sliders
+        document.querySelectorAll('.reset-slider-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (!img) return;
+                const target = btn.dataset.target;
+                switch(target) {
+                    case 'brightness': brightness = 100; break;
+                    case 'contrast': contrast = 100; break;
+                    case 'sharpness': sharpness = 0; break;
+                    case 'zoom': scale = defaultScale; break;
+                    case 'posX': posX = defaultPosX; break;
+                    case 'posY': posY = defaultPosY; break;
+                }
+                updateUI();
+                requestAnimationFrame(draw);
+            });
+        });
+
+        uploadBtn.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const newImg = new Image();
+                newImg.onload = () => {
+                    img = newImg;
+                    resetImageState();
+                };
+                newImg.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        brightnessSlider.addEventListener('input', (e) => {
+            brightness = e.target.value;
+            brightnessVal.innerText = `${brightness}%`;
+            requestAnimationFrame(draw);
+        });
+
+        contrastSlider.addEventListener('input', (e) => {
+            contrast = e.target.value;
+            contrastVal.innerText = `${contrast}%`;
+            requestAnimationFrame(draw);
+        });
+
+        sharpnessSlider.addEventListener('input', (e) => {
+            sharpness = e.target.value;
+            sharpnessVal.innerText = sharpness;
+            requestAnimationFrame(draw);
+        });
+
+        zoomSlider.addEventListener('input', (e) => {
+            const newScale = parseFloat(e.target.value);
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            
+            // Adjust coordinates scaling them relative to the center of the canvas
+            posX = centerX + (posX - centerX) * (newScale / scale);
+            posY = centerY + (posY - centerY) * (newScale / scale);
+            
+            scale = newScale;
+            updateUI();
+            requestAnimationFrame(draw);
+        });
+
+        posXSlider.addEventListener('input', (e) => {
+            const centerX = canvas.width / 2;
+            posX = centerX + parseFloat(e.target.value);
+            posXVal.innerText = e.target.value;
+            requestAnimationFrame(draw);
+        });
+
+        posYSlider.addEventListener('input', (e) => {
+            const centerY = canvas.height / 2;
+            posY = centerY + parseFloat(e.target.value);
+            posYVal.innerText = e.target.value;
+            requestAnimationFrame(draw);
+        });
+
+        bgColorBox.addEventListener('click', () => {
+            if (!img) return;
+            isPickingColor = true;
+            canvasWrapper.style.cursor = 'crosshair';
+            bgColorBox.classList.add('ring-2', 'ring-purple-400', 'ring-offset-2', 'ring-offset-[#131215]');
+        });
+
+        invertBtn.addEventListener('click', () => {
+            invert = !invert;
+            requestAnimationFrame(draw);
+        });
+
+        document.getElementById('flipHBtn').addEventListener('click', () => {
+            flipH = !flipH;
+            requestAnimationFrame(draw);
+        });
+
+        document.getElementById('flipVBtn').addEventListener('click', () => {
+            flipV = !flipV;
+            requestAnimationFrame(draw);
+        });
+
+        resetBtn.addEventListener('click', resetImageState);
+
+        downloadBtn.addEventListener('click', () => {
+            if (!img) return;
+            const link = document.createElement('a');
+            link.download = `cover-${Date.now()}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+
+        modelSelect.addEventListener('change', handleModelChange);
+        customWidthInput.addEventListener('input', handleModelChange);
+        customHeightInput.addEventListener('input', handleModelChange);
+        window.addEventListener('resize', handleModelChange);
+
+        // --- Canvas Mouse/Touch Interaction ---
+
+        // Map screen pixels to actual canvas internal resolution
+        function getMousePos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
+            let clientX = e.clientX;
+            let clientY = e.clientY;
+            
+            if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            }
+
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+
+        function startDrag(e) {
+            if (!img) return;
+
+            if (isPickingColor) {
+                const pos = getMousePos(e);
+                const pixelData = ctx.getImageData(pos.x, pos.y, 1, 1).data;
+                bgColor = '#' + [pixelData[0], pixelData[1], pixelData[2]]
+                    .map(x => x.toString(16).padStart(2, '0')).join('');
+                
+                document.getElementById('bgColorVal').innerText = bgColor.toUpperCase();
+                bgColorBox.style.backgroundColor = bgColor;
+                
+                isPickingColor = false;
+                canvasWrapper.style.cursor = ''; // Revert to drag cursor class
+                bgColorBox.classList.remove('ring-2', 'ring-purple-400', 'ring-offset-2', 'ring-offset-[#131215]');
+                
+                requestAnimationFrame(draw);
+                return;
+            }
+
+            isDragging = true;
+            const pos = getMousePos(e);
+            lastMouseX = pos.x;
+            lastMouseY = pos.y;
+        }
+
+        function drag(e) {
+            if (!isDragging || !img) return;
+            e.preventDefault();
+            const pos = getMousePos(e);
+            
+            posX += (pos.x - lastMouseX);
+            posY += (pos.y - lastMouseY);
+            
+            lastMouseX = pos.x;
+            lastMouseY = pos.y;
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+
+            // Sync UI sliders (display offsets)
+            const displayOffsetX = Math.round(posX - centerX);
+            const displayOffsetY = Math.round(posY - centerY);
+            
+            posXSlider.value = displayOffsetX;
+            posYSlider.value = displayOffsetY;
+            posXVal.innerText = displayOffsetX;
+            posYVal.innerText = displayOffsetY;
+            
+            requestAnimationFrame(draw);
+        }
+
+        // Window-level mouseup listener to catch drag release reliably
+        window.addEventListener('mouseup', stopDrag);
+
+        function stopDrag() {
+            isDragging = false;
+        }
+
+        canvas.addEventListener('mousedown', startDrag);
+        canvas.addEventListener('mousemove', drag);
+
+        canvas.addEventListener('touchstart', startDrag, { passive: false });
+        canvas.addEventListener('touchmove', drag, { passive: false });
+        window.addEventListener('touchend', stopDrag);
+
+        // Zoom via mouse wheel (scales relative to mouse pointer position)
+        canvas.addEventListener('wheel', (e) => {
+            if (!img) return;
+            e.preventDefault();
+            
+            const zoomDirection = e.deltaY < 0 ? 1.05 : 0.95;
+            let newScale = scale * zoomDirection;
+            
+            // Constrain scale
+            if (newScale < 0.1) newScale = 0.1;
+            if (newScale > 5) newScale = 5;
+
+            const pos = getMousePos(e);
+
+            // Scale positioning from the point of the mouse
+            posX = pos.x + (posX - pos.x) * (newScale / scale);
+            posY = pos.y + (posY - pos.y) * (newScale / scale);
+            
+            scale = newScale;
+            updateUI();
+            requestAnimationFrame(draw);
+        }, { passive: false });
+
+        // Initialize view size based on default selected model
+        handleModelChange();
+
+    </script>
+</body>
+</html>
