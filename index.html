@@ -199,10 +199,34 @@
                 </button>
             </div>
 
-            <!-- Single Action Row containing Toggle Invert, Mirror H, Mirror V, and BG Color Picker -->
+            <!-- Single Action Row containing Toggle Color, Toggle Invert, Mirror H, Mirror V, and BG Color Picker -->
             <div class="flex gap-2 items-center">
+                <button id="colorToggleBtn" class="border-button flex-1 h-10 flex items-center justify-center rounded-lg font-bold text-xs" title="Toggle Color / Grayscale">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <defs>
+                            <clipPath id="colorToggleClip">
+                                <rect x="2" y="2" width="20" height="20" rx="4" />
+                            </clipPath>
+                        </defs>
+                        <g clip-path="url(#colorToggleClip)">
+                            <polygon points="2,22 2,2 22,2" fill="#9ca3af" stroke="none"/>
+                            <polygon points="2,22 22,22 22,2" fill="#8b5cf6" stroke="none"/>
+                        </g>
+                        <rect x="2" y="2" width="20" height="20" rx="4" stroke="currentColor" stroke-width="2" fill="none" />
+                    </svg>
+                </button>
                 <button id="invertBtn" class="border-button flex-1 h-10 flex items-center justify-center rounded-lg font-bold text-xs" title="Toggle Invert">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10H12V2z"/><path d="M12 2a10 10 0 0 1 0 20v-10h10a10 10 0 0 1-10-10z"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+                        <defs>
+                            <clipPath id="invertClip">
+                                <rect x="2" y="2" width="20" height="20" rx="4" />
+                            </clipPath>
+                        </defs>
+                        <g clip-path="url(#invertClip)">
+                            <path d="M 2,22 L 22,2 L 22,22 Z M 12,5 A 7,7 0 1,0 12,19 A 7,7 0 1,0 12,5 Z" fill="currentColor" fill-rule="evenodd" stroke="none"/>
+                        </g>
+                        <rect x="2" y="2" width="20" height="20" rx="4" fill="none" stroke="currentColor" stroke-width="2"/>
+                    </svg>
                 </button>
                 <button id="flipHBtn" class="border-button flex-1 h-10 flex items-center justify-center rounded-lg font-bold text-xs" title="Mirror Horizontal">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h3"/><path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"/><path d="M12 20v2"/><path d="M12 14v2"/><path d="M12 8v2"/><path d="M12 2v2"/></svg>
@@ -341,8 +365,10 @@
             { name: "Kindle Scribe", width: 1860, height: 2480 },
             { name: "Kobo Nia", width: 758, height: 1024 },
             { name: "Kobo Clara BW", width: 1072, height: 1448 },
+            { name: "Kobo Clara Colour", width: 1072, height: 1448 },
             { name: "Kobo Clara 2E / HD", width: 1072, height: 1448 },
             { name: "Kobo Libra 2 / H2O", width: 1264, height: 1680 },
+            { name: "Kobo Libra Colour", width: 1264, height: 1680 },
             { name: "Kobo Sage", width: 1440, height: 1920 },
             { name: "Kobo Elipsa 2E", width: 1404, height: 1872 },
             { name: "Remarkable 2", width: 1404, height: 1872 },
@@ -362,6 +388,7 @@
         // UI Elements
         const fileInput = document.getElementById('fileInput');
         const uploadBtn = document.getElementById('uploadBtn');
+        const colorToggleBtn = document.getElementById('colorToggleBtn');
         const invertBtn = document.getElementById('invertBtn');
         const brightnessSlider = document.getElementById('brightnessSlider');
         const contrastSlider = document.getElementById('contrastSlider');
@@ -396,6 +423,7 @@
 
         // Dynamic State Variables
         let img = null;
+        let isGrayscale = true;
         let invert = false;
         let flipH = false;
         let flipV = false;
@@ -440,8 +468,8 @@
 
             if (!img) return;
 
-            // Apply standard CSS filters
-            ctx.filter = `grayscale(100%) brightness(${brightness}%) contrast(${contrast}%) ${invert ? 'invert(100%)' : ''}`;
+            // Apply standard CSS filters including optional grayscale
+            ctx.filter = `${isGrayscale ? 'grayscale(100%) ' : ''}brightness(${brightness}%) contrast(${contrast}%) ${invert ? 'invert(100%)' : ''}`;
             
             ctx.save();
             const drawW = img.width * scale;
@@ -563,6 +591,7 @@
             defaultPosY = posY;
 
             // Reset filters and transforms
+            isGrayscale = true;
             invert = false;
             flipH = false;
             flipV = false;
@@ -709,6 +738,12 @@
             isPickingColor = true;
             canvasWrapper.style.cursor = 'crosshair';
             bgColorBox.classList.add('ring-2', 'ring-purple-400', 'ring-offset-2', 'ring-offset-[#131215]');
+        });
+
+        // Toggles Grayscale/Color view for applicable e-readers
+        colorToggleBtn.addEventListener('click', () => {
+            isGrayscale = !isGrayscale;
+            requestAnimationFrame(draw);
         });
 
         invertBtn.addEventListener('click', () => {
