@@ -199,6 +199,17 @@
                 </button>
             </div>
 
+            <!-- URL Input Row -->
+            <div class="flex gap-2 items-center w-full">
+                <input type="url" id="imageUrlInput" placeholder="url to image" class="w-full bg-[#1e1d24] border border-[rgba(255,255,255,0.15)] text-[#e2e8f0] rounded-lg p-2.5 text-xs outline-none font-medium focus:border-[#a78bfa] transition-colors placeholder:text-gray-500">
+                <button id="loadUrlBtn" class="border-button h-[38px] w-12 flex items-center justify-center rounded-lg shrink-0 transition-all" title="Load from URL">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                    </svg>
+                </button>
+            </div>
+
             <!-- Single Action Row containing Toggle Color, Toggle Invert, Mirror H, Mirror V, and BG Color Picker -->
             <div class="flex gap-2 items-center">
                 <button id="colorToggleBtn" class="border-button flex-1 h-10 flex items-center justify-center rounded-lg font-bold text-xs" title="Toggle Color / Grayscale">
@@ -295,31 +306,32 @@
                 </div>
                 <input type="range" id="zoomSlider" class="cyan-slider" min="0.1" max="5" step="0.05" value="1">
             </div>
-
-            <div class="slider-container flex flex-col gap-1">
-                <div class="flex justify-between items-center text-gray-400 text-[11px] font-semibold uppercase tracking-wider">
-                    <label for="posXSlider">Pos X</label>
-                    <div class="flex items-center gap-1.5">
-                        <span id="posXVal" class="text-purple-300">0</span>
-                        <button class="reset-slider-btn text-gray-500 hover:text-white transition-colors" data-target="posX" title="Reset Pos X">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-                        </button>
+            <div class="flex gap-4">
+                <div class="slider-container flex flex-col gap-1">
+                    <div class="flex justify-between items-center text-gray-400 text-[11px] font-semibold uppercase tracking-wider">
+                        <label for="posXSlider">Pos X</label>
+                        <div class="flex items-center gap-1.5">
+                            <span id="posXVal" class="text-purple-300">0</span>
+                            <button class="reset-slider-btn text-gray-500 hover:text-white transition-colors" data-target="posX" title="Reset Pos X">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                            </button>
+                        </div>
                     </div>
+                    <input type="range" id="posXSlider" class="cyan-slider" min="-1500" max="1500" value="0">
                 </div>
-                <input type="range" id="posXSlider" class="cyan-slider" min="-1500" max="1500" value="0">
-            </div>
 
-            <div class="slider-container flex flex-col gap-1">
-                <div class="flex justify-between items-center text-gray-400 text-[11px] font-semibold uppercase tracking-wider">
-                    <label for="posYSlider">Pos Y</label>
-                    <div class="flex items-center gap-1.5">
-                        <span id="posYVal" class="text-purple-300">0</span>
-                        <button class="reset-slider-btn text-gray-500 hover:text-white transition-colors" data-target="posY" title="Reset Pos Y">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-                        </button>
+                <div class="slider-container flex flex-col gap-1">
+                    <div class="flex justify-between items-center text-gray-400 text-[11px] font-semibold uppercase tracking-wider">
+                        <label for="posYSlider">Pos Y</label>
+                        <div class="flex items-center gap-1.5">
+                            <span id="posYVal" class="text-purple-300">0</span>
+                            <button class="reset-slider-btn text-gray-500 hover:text-white transition-colors" data-target="posY" title="Reset Pos Y">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                            </button>
+                        </div>
                     </div>
+                    <input type="range" id="posYSlider" class="cyan-slider" min="-1500" max="1500" value="0">
                 </div>
-                <input type="range" id="posYSlider" class="cyan-slider" min="-1500" max="1500" value="0">
             </div>
         </div>
 
@@ -388,6 +400,8 @@
         // UI Elements
         const fileInput = document.getElementById('fileInput');
         const uploadBtn = document.getElementById('uploadBtn');
+        const imageUrlInput = document.getElementById('imageUrlInput');
+        const loadUrlBtn = document.getElementById('loadUrlBtn');
         const colorToggleBtn = document.getElementById('colorToggleBtn');
         const invertBtn = document.getElementById('invertBtn');
         const brightnessSlider = document.getElementById('brightnessSlider');
@@ -687,6 +701,72 @@
             reader.readAsDataURL(file);
         });
 
+        // URL Loading Logic (With Dual-Fetch CORS Bypass)
+        async function loadFromUrl() {
+            const url = imageUrlInput.value.trim();
+            if (!url) return;
+            
+            const originalIcon = loadUrlBtn.innerHTML;
+            // Spinner animation while fetching
+            loadUrlBtn.innerHTML = '<svg class="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>';
+            loadUrlBtn.disabled = true;
+
+            const showError = (msg) => {
+                const originalPlaceholder = imageUrlInput.placeholder;
+                imageUrlInput.value = '';
+                imageUrlInput.placeholder = msg;
+                imageUrlInput.classList.add('border-red-500', 'text-red-400');
+                setTimeout(() => {
+                    imageUrlInput.placeholder = originalPlaceholder;
+                    imageUrlInput.classList.remove('border-red-500', 'text-red-400');
+                }, 3000);
+            };
+
+            const processBlob = (blob) => {
+                const objectUrl = URL.createObjectURL(blob);
+                const newImg = new Image();
+                newImg.onload = () => {
+                    img = newImg;
+                    resetImageState();
+                    imageUrlInput.value = ''; // clear input on success
+                };
+                newImg.onerror = () => showError('Invalid image file.');
+                newImg.src = objectUrl;
+            };
+
+            try {
+                // Attempt 1: Direct Fetch (works if same-origin or CORS headers allow it)
+                let response = await fetch(url);
+                if (!response.ok) throw new Error('Direct fetch failed');
+                let blob = await response.blob();
+                if (!blob.type.startsWith('image/')) throw new Error('Not an image');
+                processBlob(blob);
+            } catch (err) {
+                // Attempt 2: CORS Proxy fallback for external images without correct headers
+                try {
+                    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+                    let response = await fetch(proxyUrl);
+                    if (!response.ok) throw new Error('Proxy fetch failed');
+                    let blob = await response.blob();
+                    if (!blob.type.startsWith('image/')) throw new Error('Not an image');
+                    processBlob(blob);
+                } catch (proxyErr) {
+                    showError('CORS/Load Error. Link might be protected.');
+                }
+            } finally {
+                loadUrlBtn.innerHTML = originalIcon;
+                loadUrlBtn.disabled = false;
+            }
+        }
+
+        loadUrlBtn.addEventListener('click', loadFromUrl);
+        imageUrlInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                loadFromUrl();
+            }
+        });
+
         brightnessSlider.addEventListener('input', (e) => {
             brightness = e.target.value;
             brightnessVal.innerText = `${brightness}%`;
@@ -765,10 +845,24 @@
 
         downloadBtn.addEventListener('click', () => {
             if (!img) return;
-            const link = document.createElement('a');
-            link.download = `cover-${Date.now()}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
+            
+            // Use toBlob instead of toDataURL to prevent corrupted files on high-res images
+            canvas.toBlob((blob) => {
+                if (!blob) return;
+                
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.download = `cover-${Date.now()}.png`;
+                link.href = url;
+                
+                // Append, click, and clean up (ensures compatibility across all browsers)
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                // Release the memory
+                URL.revokeObjectURL(url);
+            }, 'image/png');
         });
 
         modelSelect.addEventListener('change', handleModelChange);
