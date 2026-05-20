@@ -307,7 +307,7 @@
                 <input type="range" id="zoomSlider" class="cyan-slider" min="0.1" max="5" step="0.05" value="1">
             </div>
             <div class="flex gap-4">
-                <div class="slider-container flex flex-col gap-1">
+                <div class="slider-container flex-1 flex flex-col gap-1">
                     <div class="flex justify-between items-center text-gray-400 text-[11px] font-semibold uppercase tracking-wider">
                         <label for="posXSlider">Pos X</label>
                         <div class="flex items-center gap-1.5">
@@ -320,7 +320,7 @@
                     <input type="range" id="posXSlider" class="cyan-slider" min="-1500" max="1500" value="0">
                 </div>
 
-                <div class="slider-container flex flex-col gap-1">
+                <div class="slider-container flex-1 flex flex-col gap-1">
                     <div class="flex justify-between items-center text-gray-400 text-[11px] font-semibold uppercase tracking-wider">
                         <label for="posYSlider">Pos Y</label>
                         <div class="flex items-center gap-1.5">
@@ -336,27 +336,31 @@
         </div>
 
         <!-- Canvas Area (Right side dashboard workspace container) -->
-        <div class="flex-1 flex flex-col items-center justify-center gap-4 h-full">
+        <div class="flex-1 flex flex-col items-center justify-start gap-4 h-full pt-4">
             
-            <!-- Model Selector layout above the canvas -->
-            <div id="modelSelectorContainer" class="w-full flex flex-col items-center gap-1 transition-all duration-150">
-                <select id="modelSelect" class="cyan-select w-full text-center text-sm shadow-md"></select>
-                <span id="modelResolutionText" class="text-[11px] text-purple-400/80 font-medium tracking-wider"></span>
+            <!-- Dedicated Fixed Width Header for Selector and Custom Input Panels (Guarantees center alignment with min/max bounds) -->
+            <div class="w-full flex flex-col items-center gap-3 min-w-[280px] max-w-[420px] mx-auto">
+                <!-- Model Selector layout above the canvas -->
+                <div id="modelSelectorContainer" class="w-full flex flex-col items-center gap-1 transition-all duration-150">
+                    <select id="modelSelect" class="cyan-select w-full text-center text-sm shadow-md"></select>
+                    <span id="modelResolutionText" class="text-[11px] text-purple-400/80 font-medium tracking-wider"></span>
+                </div>
+
+                <!-- Custom Size Panel (elegant, compact inline inputs centered below select box) -->
+                <div id="customSizePanel" class="hidden flex gap-4 justify-center w-full">
+                    <div class="flex flex-col gap-1 items-center">
+                        <label for="customWidth" class="text-gray-400 text-[9px] font-semibold uppercase tracking-wider">Width</label>
+                        <input type="number" id="customWidth" class="w-16 bg-[#1e1d24] border border-gray-700 text-purple-300 rounded-lg p-1 text-xs outline-none font-bold text-center" value="1000">
+                    </div>
+                    <div class="flex flex-col gap-1 items-center">
+                        <label for="customHeight" class="text-gray-400 text-[9px] font-semibold uppercase tracking-wider">Height</label>
+                        <input type="number" id="customHeight" class="w-16 bg-[#1e1d24] border border-gray-700 text-purple-300 rounded-lg p-1 text-xs outline-none font-bold text-center" value="1000">
+                    </div>
+                </div>
             </div>
 
-            <!-- Custom Size Panel (appears seamlessly directly below the device selector above the canvas) -->
-            <div id="customSizePanel" class="hidden flex gap-4 w-full">
-                <div class="flex-1 flex flex-col gap-1">
-                    <label for="customWidth" class="text-gray-400 text-[10px] font-semibold uppercase tracking-wider">Width</label>
-                    <input type="number" id="customWidth" class="w-full bg-[#1e1d24] border border-gray-700 text-purple-300 rounded-lg p-2 text-xs outline-none font-bold text-center" value="1000">
-                </div>
-                <div class="flex-1 flex flex-col gap-1">
-                    <label for="customHeight" class="text-gray-400 text-[10px] font-semibold uppercase tracking-wider">Height</label>
-                    <input type="number" id="customHeight" class="w-full bg-[#1e1d24] border border-gray-700 text-purple-300 rounded-lg p-2 text-xs outline-none font-bold text-center" value="1000">
-                </div>
-            </div>
-
-            <div id="canvasWrapper" class="group">
+            <!-- Canvas Wrapper is fully independent and scales mathematically to fill maximum area -->
+            <div id="canvasWrapper" class="group mt-auto mb-auto mx-auto">
                 <canvas id="coverCanvas" width="600" height="800"></canvas>
                 <button id="resetBtn" class="border-button absolute bottom-6 left-1/2 transform -translate-x-1/2 px-5 py-2 bg-[#1e1d24]/95 backdrop-blur-md rounded-lg font-bold uppercase tracking-wider text-[11px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-2xl">
                     Reset View & Filters
@@ -372,7 +376,8 @@
             { name: "Kindle (11th Gen)", width: 1072, height: 1448 },
             { name: "Kindle PW (12th Gen)", width: 1264, height: 1680 },
             { name: "Kindle PW (11th Gen)", width: 1236, height: 1648 },
-            { name: "Kindle PW (10th Gen & earlier)", width: 1072, height: 1448 },
+            { name: "Kindle PW (10th Gen)", width: 1072, height: 1448 },
+            { name: "Kindle PW (5th Gen)", width: 758, height: 1024 },
             { name: "Kindle Oasis (3rd Gen)", width: 1264, height: 1680 },
             { name: "Kindle Scribe", width: 1860, height: 2480 },
             { name: "Kobo Nia", width: 758, height: 1024 },
@@ -558,16 +563,32 @@
             CENTER_X = width / 2;
             CENTER_Y = height / 2;
 
-            // Dynamically calculate display dimensions to preserve aspect ratio, scaling taller to fill screen
-            const maxDisplayHeight = Math.min(800, window.innerHeight * 0.82);
-            const displayWidth = maxDisplayHeight * (width / height);
+            // --- OPTIMIZED FLUID ASPECT RATIO COUPLING FOR SCREEN COVERAGE ---
+            // Detect available viewport bounding box for the workspace (Right Column)
+            const paddingY = 120; // Decreased padding clearance to allow maximum size
+            const paddingX = 40;  // Padding left/right
+            
+            const availHeight = Math.max(200, window.innerHeight - paddingY);
+            const isMobile = window.innerWidth < 768;
+            
+            // Allocate proper bounds based on responsive columns
+            let availWidth = isMobile ? (window.innerWidth - paddingX) : (window.innerWidth - 320 - paddingX);
 
-            canvasWrapper.style.height = `${maxDisplayHeight}px`;
+            // LIMIT MAX WIDTH to avoid canvas getting too wide and covering everything
+            const maxDisplayWidth = 420; // Matches standard sidebar width bounds
+            if (availWidth > maxDisplayWidth) {
+                availWidth = maxDisplayWidth;
+            }
+
+            // Compute ideal scale factor that covers the target bounding box perfectly
+            const scaleFit = Math.min(availWidth / width, availHeight / height);
+            
+            // Compute real pixel sizing for display
+            const displayWidth = width * scaleFit;
+            const displayHeight = height * scaleFit;
+
             canvasWrapper.style.width = `${displayWidth}px`;
-
-            // Align selector and custom size panels precisely to the scaled width
-            document.getElementById('modelSelectorContainer').style.maxWidth = `${displayWidth}px`;
-            customSizePanel.style.maxWidth = `${displayWidth}px`;
+            canvasWrapper.style.height = `${displayHeight}px`;
 
             // Re-center internal positions
             defaultPosX = CENTER_X;
@@ -702,8 +723,6 @@
         });
 
         // URL Loading Logic (With Dual-Fetch CORS Bypass)
-// Improved URL Loading Logic
-// Optimized URL Loading Logic
         async function loadFromUrl() {
             const url = imageUrlInput.value.trim();
             if (!url) return;
@@ -736,8 +755,7 @@
             };
 
             newImg.onerror = () => {
-                // If direct load fails, use Weserv (much faster than AllOrigins)
-                // Weserv handles resizing and CORS stripping efficiently
+                // If direct load fails, use Weserv
                 newImg.onerror = () => {
                     showError('Failed to load image.');
                     loadUrlBtn.innerHTML = originalIcon;
