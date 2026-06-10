@@ -12,6 +12,7 @@ It contains multiple editing tools:
 - Sharpness
 - Zoom
 - Position
+- Rotation
 
 ------------------------------------------------------------------
 **NOTICE**
