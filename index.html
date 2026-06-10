@@ -333,6 +333,18 @@
                     <input type="range" id="posYSlider" class="cyan-slider" min="-1500" max="1500" value="0">
                 </div>
             </div>
+            <div class="slider-container flex flex-col gap-1">
+                <div class="flex justify-between items-center text-gray-400 text-[11px] font-semibold uppercase tracking-wider">
+                    <label for="rotationSlider">Rotation</label>
+                    <div class="flex items-center gap-1.5">
+                        <span id="rotationVal" class="text-purple-300">0°</span>
+                        <button class="reset-slider-btn text-gray-500 hover:text-white transition-colors" data-target="rotation" title="Reset Rotation">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <input type="range" id="rotationSlider" class="cyan-slider" min="-3.14159" max="3.14159" step="0.01" value="0">
+            </div>
         </div>
 
         <!-- Canvas Area (Right side dashboard workspace container) -->
@@ -376,8 +388,7 @@
             { name: "Kindle (11th Gen)", width: 1072, height: 1448 },
             { name: "Kindle PW (12th Gen)", width: 1264, height: 1680 },
             { name: "Kindle PW (11th Gen)", width: 1236, height: 1648 },
-            { name: "Kindle PW (10th Gen)", width: 1072, height: 1448 },
-            { name: "Kindle PW (5th Gen)", width: 758, height: 1024 },
+            { name: "Kindle PW (10th Gen & earlier)", width: 1072, height: 1448 },
             { name: "Kindle Oasis (3rd Gen)", width: 1264, height: 1680 },
             { name: "Kindle Scribe", width: 1860, height: 2480 },
             { name: "Kobo Nia", width: 758, height: 1024 },
@@ -415,6 +426,7 @@
         const zoomSlider = document.getElementById('zoomSlider');
         const posXSlider = document.getElementById('posXSlider');
         const posYSlider = document.getElementById('posYSlider');
+        const rotationSlider = document.getElementById('rotationSlider');
         const bgColorBox = document.getElementById('bgColorBox');
         const downloadBtn = document.getElementById('downloadBtn');
         const resetBtn = document.getElementById('resetBtn');
@@ -433,6 +445,7 @@
         const zoomVal = document.getElementById('zoomVal');
         const posXVal = document.getElementById('posXVal');
         const posYVal = document.getElementById('posYVal');
+        const rotationVal = document.getElementById('rotationVal');
 
         // Constants
         const CANVAS_WIDTH = 600;
@@ -460,6 +473,14 @@
         let defaultScale = 1;
         let defaultPosX = 0;
         let defaultPosY = 0;
+
+        // Rotation & Dial State
+        let rotation = 0;
+        let isRotating = false;
+        let rotationStartOffset = 0;
+        let isHoveringDial = false;
+        let isHoveringCanvas = false;
+        let hideUI = false;
 
         // Color Pick & Drag State
         let isPickingColor = false;
@@ -496,6 +517,8 @@
 
             // Translate to center point
             ctx.translate(posX, posY);
+            // Apply Rotation
+            ctx.rotate(rotation);
             // Apply flipping if needed
             ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
             // Draw image relative to its center
@@ -508,6 +531,73 @@
 
             // Apply manual sharpening matrix if required
             if (sharpness > 0) applySharpening();
+
+            // Draw Rotation Dial UI overlay (hidden during export)
+            if (!hideUI && (isHoveringCanvas || isRotating)) {
+                drawDial();
+            }
+        }
+
+        // Custom Dial Overlay for rotation
+        function drawDial() {
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            
+            // Calculate scale to keep the UI the same visual size regardless of image resolution
+            const rect = canvas.getBoundingClientRect();
+            const uiScale = canvas.width / rect.width; 
+
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.scale(uiScale, uiScale);
+            
+            // Background circle
+            ctx.beginPath();
+            ctx.arc(0, 0, 50, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fill();
+
+            // Interactive coloring
+            const color = (isHoveringDial || isRotating) ? '#ffffff' : 'rgba(255, 255, 255, 0.8)';
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = 3;
+            
+            // Inner circle
+            ctx.beginPath();
+            ctx.arc(0, 0, 16, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Center dot
+            ctx.beginPath();
+            ctx.arc(0, 0, 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Outer Ticks
+            ctx.lineWidth = 2.5;
+            for (let i = 0; i < 12; i++) {
+                const angle = (i / 12) * Math.PI * 2;
+                const innerR = 30;
+                const outerR = 38;
+                ctx.beginPath();
+                ctx.moveTo(Math.cos(angle) * innerR, Math.sin(angle) * innerR);
+                ctx.lineTo(Math.cos(angle) * outerR, Math.sin(angle) * outerR);
+                ctx.stroke();
+            }
+
+            // Rotated Pointer
+            ctx.rotate(rotation);
+            ctx.beginPath();
+            ctx.moveTo(0, -16);
+            ctx.lineTo(0, -42);
+            ctx.stroke();
+            
+            // Pointer Dot
+            ctx.beginPath();
+            ctx.arc(0, -42, 5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
         }
 
         // Custom fast convolution matrix for sharpening
@@ -634,6 +724,7 @@
             brightness = 100;
             contrast = 100;
             sharpness = 0;
+            rotation = 0;
 
             updateUI();
             draw();
@@ -664,6 +755,9 @@
 
             posYSlider.value = displayOffsetY;
             posYVal.innerText = displayOffsetY;
+
+            rotationSlider.value = rotation;
+            rotationVal.innerText = `${Math.round(rotation * 180 / Math.PI)}°`;
 
             bgColorBox.style.backgroundColor = bgColor;
             document.getElementById('bgColorVal').innerText = bgColor.toUpperCase();
@@ -698,10 +792,18 @@
                     case 'zoom': scale = defaultScale; break;
                     case 'posX': posX = defaultPosX; break;
                     case 'posY': posY = defaultPosY; break;
+                    case 'rotation': rotation = 0; break;
                 }
                 updateUI();
                 requestAnimationFrame(draw);
             });
+        });
+
+        // --- Rotation Slider Listener ---
+        rotationSlider.addEventListener('input', (e) => {
+            rotation = parseFloat(e.target.value);
+            rotationVal.innerText = `${Math.round(rotation * 180 / Math.PI)}°`;
+            requestAnimationFrame(draw);
         });
 
         uploadBtn.addEventListener('click', () => fileInput.click());
@@ -854,6 +956,10 @@
         downloadBtn.addEventListener('click', () => {
             if (!img) return;
             
+            // Hide the UI elements momentarily so they don't get exported into the image
+            hideUI = true;
+            draw();
+
             // Use toBlob instead of toDataURL to prevent corrupted files on high-res images
             canvas.toBlob((blob) => {
                 if (!blob) return;
@@ -870,6 +976,10 @@
                 
                 // Release the memory
                 URL.revokeObjectURL(url);
+
+                // Restore UI instantly after export logic triggered
+                hideUI = false;
+                draw();
             }, 'image/png');
         });
 
@@ -903,8 +1013,9 @@
         function startDrag(e) {
             if (!img) return;
 
+            const pos = getMousePos(e);
+
             if (isPickingColor) {
-                const pos = getMousePos(e);
                 const pixelData = ctx.getImageData(pos.x, pos.y, 1, 1).data;
                 bgColor = '#' + [pixelData[0], pixelData[1], pixelData[2]]
                     .map(x => x.toString(16).padStart(2, '0')).join('');
@@ -920,47 +1031,118 @@
                 return;
             }
 
+            const rect = canvas.getBoundingClientRect();
+            const uiScale = canvas.width / rect.width;
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const dist = Math.hypot(pos.x - centerX, pos.y - centerY);
+
+            // Check if clicking inside the dial interaction area
+            if (dist <= 50 * uiScale) {
+                isRotating = true;
+                rotationStartOffset = Math.atan2(pos.y - centerY, pos.x - centerX) - rotation;
+                canvasWrapper.style.cursor = 'grabbing';
+                return;
+            }
+
             isDragging = true;
-            const pos = getMousePos(e);
             lastMouseX = pos.x;
             lastMouseY = pos.y;
         }
 
         function drag(e) {
-            if (!isDragging || !img) return;
+            if (!img) return;
             e.preventDefault();
             const pos = getMousePos(e);
-            
-            posX += (pos.x - lastMouseX);
-            posY += (pos.y - lastMouseY);
-            
-            lastMouseX = pos.x;
-            lastMouseY = pos.y;
             
             const centerX = canvas.width / 2;
             const centerY = canvas.height / 2;
 
-            // Sync UI sliders (display offsets)
-            const displayOffsetX = Math.round(posX - centerX);
-            const displayOffsetY = Math.round(posY - centerY);
+            if (isRotating) {
+                rotation = Math.atan2(pos.y - centerY, pos.x - centerX) - rotationStartOffset;
+                updateUI();
+                requestAnimationFrame(draw);
+                return;
+            }
             
-            posXSlider.value = displayOffsetX;
-            posYSlider.value = displayOffsetY;
-            posXVal.innerText = displayOffsetX;
-            posYVal.innerText = displayOffsetY;
-            
-            requestAnimationFrame(draw);
+            if (isDragging) {
+                posX += (pos.x - lastMouseX);
+                posY += (pos.y - lastMouseY);
+                
+                lastMouseX = pos.x;
+                lastMouseY = pos.y;
+
+                // Sync UI sliders (display offsets)
+                const displayOffsetX = Math.round(posX - centerX);
+                const displayOffsetY = Math.round(posY - centerY);
+                
+                posXSlider.value = displayOffsetX;
+                posYSlider.value = displayOffsetY;
+                posXVal.innerText = displayOffsetX;
+                posYVal.innerText = displayOffsetY;
+                
+                requestAnimationFrame(draw);
+                return;
+            }
+
+            // Hover state checks for un-clicked mouse movement
+            if (!isPickingColor) {
+                const rect = canvas.getBoundingClientRect();
+                const uiScale = canvas.width / rect.width;
+                const dist = Math.hypot(pos.x - centerX, pos.y - centerY);
+                const wasHovering = isHoveringDial;
+                
+                isHoveringDial = (dist <= 50 * uiScale);
+                
+                if (isHoveringDial !== wasHovering) {
+                    canvasWrapper.style.cursor = isHoveringDial ? 'grab' : 'move';
+                    requestAnimationFrame(draw);
+                }
+            }
         }
 
         // Window-level mouseup listener to catch drag release reliably
         window.addEventListener('mouseup', stopDrag);
 
         function stopDrag() {
+            if (isRotating) {
+                isRotating = false;
+                canvasWrapper.style.cursor = isHoveringDial ? 'grab' : 'move';
+                requestAnimationFrame(draw);
+            }
             isDragging = false;
         }
 
         canvas.addEventListener('mousedown', startDrag);
         canvas.addEventListener('mousemove', drag);
+
+        // Canvas hover trackers for hiding/showing dial
+        canvas.addEventListener('mouseenter', () => {
+            isHoveringCanvas = true;
+            requestAnimationFrame(draw);
+        });
+        
+        canvas.addEventListener('mouseleave', () => {
+            isHoveringCanvas = false;
+            if (!isRotating) isHoveringDial = false;
+            requestAnimationFrame(draw);
+        });
+
+        // Double click to instantly reset rotation
+        canvas.addEventListener('dblclick', (e) => {
+            if (!img) return;
+            const pos = getMousePos(e);
+            const rect = canvas.getBoundingClientRect();
+            const uiScale = canvas.width / rect.width;
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const dist = Math.hypot(pos.x - centerX, pos.y - centerY);
+            
+            if (dist <= 50 * uiScale) {
+                rotation = 0;
+                requestAnimationFrame(draw);
+            }
+        });
 
         canvas.addEventListener('touchstart', startDrag, { passive: false });
         canvas.addEventListener('touchmove', drag, { passive: false });
